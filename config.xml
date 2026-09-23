@@ -1,0 +1,26 @@
+<?xml version='1.0' encoding='utf-8'?>
+<widget id="com.raakaacapital.mtfsentiment" version="1.0.0" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
+    <name>Raakaa MTF Sentiment</name>
+    <description>Raakaa Capital - Multi-Timeframe Sentiment Speedometers</description>
+    <author email="hello@raakaacapital.example" href="https://raakaacapital.example">Raakaa Capital</author>
+
+    <content src="index.html" />
+
+    <access origin="*" />
+    <allow-intent href="http://*/*" />
+    <allow-intent href="https://*/*" />
+
+    <preference name="Orientation" value="default" />
+    <preference name="Fullscreen" value="false" />
+    <preference name="BackgroundColor" value="0xFF0B0E14" />
+    <preference name="AndroidWindowSplashScreenBackground" value="#0B0E14" />
+    <preference name="android-minSdkVersion" value="24" />
+    <preference name="android-targetSdkVersion" value="34" />
+
+    <platform name="android">
+        <allow-intent href="market:*" />
+        <edit-config file="app/src/main/AndroidManifest.xml" mode="merge" target="/manifest/application">
+            <application android:usesCleartextTraffic="false" />
+        </edit-config>
+    </platform>
+</widget>

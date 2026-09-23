@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Raakaa Capital — Multi-Timeframe Sentiment</title>
+<style>
+  :root{
+    --bg:#0B0E14; --card:#121722; --card-b:#1D2433;
+    --text:#E7EAF0; --muted:#7C8698; --accent:#C9A24B;
+    --bear:#E5484D; --side:#E8A33D; --bull:#3DD68C;
+    --needle:#E7EAF0;
+    box-sizing:border-box;
+    padding-top:env(safe-area-inset-top,0px);
+    padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  *{box-sizing:border-box;}
+  html{scroll-padding-top:env(safe-area-inset-top,0px);}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    padding:0 18px 40px;
+  }
+  .brand-bar{
+    max-width:1080px; margin:0 auto; padding:22px 0 18px;
+    border-bottom:1px solid var(--card-b); margin-bottom:24px;
+    display:flex; align-items:baseline; gap:10px; flex-wrap:wrap;
+  }
+  .brand-mark{
+    width:9px; height:9px; border-radius:50%; background:var(--accent);
+    display:inline-block; margin-right:2px; position:relative; top:-2px;
+  }
+  .brand{
+    font-size:1.15rem; font-weight:750; letter-spacing:0.02em; color:var(--accent);
+  }
+  .brand-sep{color:var(--card-b); font-weight:400;}
+  header{max-width:1080px;margin:0 auto 22px;}
+  h1{font-size:1.25rem; font-weight:650; margin:0 0 4px; letter-spacing:-0.01em;}
+  p.sub{margin:0;color:var(--muted);font-size:0.88rem; max-width:56ch;}
+  .grid{
+    max-width:1080px;margin:0 auto;
+    display:grid; grid-template-columns:repeat(3,1fr); gap:14px;
+  }
+  @media (max-width:760px){ .grid{grid-template-columns:repeat(2,1fr);} }
+  @media (max-width:480px){ .grid{grid-template-columns:1fr;} }
+  .card{
+    background:var(--card); border:1px solid var(--card-b);
+    border-radius:14px; padding:16px 16px 18px; text-align:center;
+  }
+  .tf{
+    font-size:1rem; font-weight:700; letter-spacing:0.01em; margin-bottom:10px;
+    background:transparent; border:none; border-bottom:1px dashed var(--card-b);
+    color:var(--text); text-align:center; width:100%; padding:2px 4px 5px;
+    outline:none; font-family:inherit;
+  }
+  .tf:focus{border-bottom-color:var(--muted);}
+  svg{width:100%; height:auto; display:block; margin:0 auto;}
+  .zone-label{font-size:10px; font-weight:700;}
+  .zone-label.bear{fill:#B4454A;} .zone-label.side{fill:#B67C2E;} .zone-label.bull{fill:#2E9E6E;}
+  .tick{font-size:8px; fill:var(--muted); font-weight:600;}
+  .state{
+    font-size:0.95rem; font-weight:700; letter-spacing:0.02em; margin-top:8px;
+  }
+  .state.bear{color:#B4454A;} .state.side{color:#B67C2E;} .state.bull{color:#2E9E6E;}
+  input[type=range]{
+    width:100%; margin-top:12px; -webkit-appearance:none; appearance:none;
+    height:4px; border-radius:2px;
+    background:linear-gradient(90deg,var(--bear),var(--side),var(--bull));
+    outline:none;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none; appearance:none;
+    width:16px; height:16px; border-radius:50%;
+    background:var(--text); border:2px solid var(--bg);
+    box-shadow:0 0 0 1px var(--card-b); cursor:pointer; margin-top:-6px;
+  }
+  input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:2px;}
+  input[type=range]::-moz-range-thumb{
+    width:16px; height:16px; border-radius:50%;
+    background:var(--text); border:2px solid var(--bg); cursor:pointer;
+  }
+  footer{max-width:1080px;margin:22px auto 0;color:var(--muted);font-size:0.78rem;}
+</style>
+</head>
+<body>
+
+<div class="brand-bar">
+  <span class="brand-mark"></span><span class="brand">RAAKAA CAPITAL</span>
+  <span class="brand-sep">/</span>
+  <span style="color:var(--muted); font-size:0.85rem;">Trading Desk Tools</span>
+</div>
+
+<header>
+  <h1>Multi-Timeframe Sentiment</h1>
+  <p class="sub">Type in your own timeframe names, then drag each slider to set your read: left bearish, top sideways, right bullish.</p>
+</header>
+
+<div class="grid" id="grid"></div>
+
+<footer>Values are set by hand and saved only for this session &mdash; nothing here is calculated automatically.</footer>
+
+<script>
+const TIMEFRAMES = [
+  {id:'tf5m',  short:'5M',  full:'5 Minute'},
+  {id:'tf15m', short:'15M', full:'15 Minute'},
+  {id:'tf1h',  short:'1H',  full:'1 Hour'},
+  {id:'tf4h',  short:'4H',  full:'4 Hour'},
+  {id:'tf1d',  short:'1D',  full:'Daily'},
+  {id:'tf1w',  short:'1W',  full:'Weekly'},
+];
+
+function arcPath(cx, cy, r, startDeg, endDeg){
+  const toXY = d => {
+    const rad = (d - 180) * Math.PI / 180;
+    return [cx + r * Math.cos(rad), cy + r * Math.sin(rad)];
+  };
+  const [x1,y1] = toXY(startDeg);
+  const [x2,y2] = toXY(endDeg);
+  return `M ${x1} ${y1} A ${r} ${r} 0 0 1 ${x2} ${y2}`;
+}
+
+function gaugeSVG(id){
+  const cx=100, cy=100, r=82;
+  return `
+  <svg viewBox="0 0 200 118" xmlns="http://www.w3.org/2000/svg">
+    <path d="${arcPath(cx,cy,r,0,60)}" stroke="var(--bear)" stroke-width="14" fill="none" stroke-linecap="round"/>
+    <path d="${arcPath(cx,cy,r,60,120)}" stroke="var(--side)" stroke-width="14" fill="none" stroke-linecap="round"/>
+    <path d="${arcPath(cx,cy,r,120,180)}" stroke="var(--bull)" stroke-width="14" fill="none" stroke-linecap="round"/>
+    <text x="14" y="106" class="zone-label bear" text-anchor="start">BEARISH</text>
+    <text x="100" y="14" class="zone-label side" text-anchor="middle">SIDEWAYS</text>
+    <text x="100" y="25" class="tick" text-anchor="middle">0</text>
+    <text x="186" y="106" class="zone-label bull" text-anchor="end">BULLISH</text>
+    <line id="${id}-needle" x1="100" y1="100" x2="100" y2="28" stroke="var(--needle)" stroke-width="3" stroke-linecap="round" style="transform-origin:100px 100px;"/>
+    <circle cx="100" cy="100" r="5.5" fill="var(--needle)"/>
+  </svg>`;
+}
+
+function stateLabel(v){
+  if(v <= -34) return 'Bearish';
+  if(v >= 34) return 'Bullish';
+  return 'Sideways';
+}
+function stateClass(v){
+  if(v <= -34) return 'bear';
+  if(v >= 34) return 'bull';
+  return 'side';
+}
+
+const grid = document.getElementById('grid');
+TIMEFRAMES.forEach(tf => {
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.innerHTML = `
+    <input class="tf" id="${tf.id}-label" value="${tf.short}" aria-label="Timeframe name" maxlength="12">
+    ${gaugeSVG(tf.id)}
+    <div class="state" id="${tf.id}-state">Sideways</div>
+    <input type="range" min="-100" max="100" value="0" id="${tf.id}-slider" aria-label="${tf.full} sentiment">
+  `;
+  grid.appendChild(card);
+
+  const needle = card.querySelector(`#${tf.id}-needle`);
+  const stateEl = card.querySelector(`#${tf.id}-state`);
+  const slider = card.querySelector(`#${tf.id}-slider`);
+
+  function update(v){
+    const deg = (v / 100) * 90; // -90..90
+    needle.style.transform = `rotate(${deg}deg)`;
+    stateEl.textContent = stateLabel(v);
+    stateEl.className = 'state ' + stateClass(v);
+  }
+  slider.addEventListener('input', e => update(parseInt(e.target.value,10)));
+  update(0);
+});
+</script>
+</body>
+</html>
